@@ -2,6 +2,7 @@ import { ApiTags, ApiParam, ApiOkResponse } from '@nestjs/swagger';
 import { CityMembersService } from './city-members.service';
 import { Controller, Get, Query, Res } from '@nestjs/common';
 import { CityMembersResponseDto } from './dto/city-members-response.dto';
+import { HttpStatus } from '../enums/http-status.enum';
 
 @Controller('cityMembers')
 @ApiTags('City Members')
@@ -35,11 +36,21 @@ export class CityMembersController {
       requestDuration: duration,
       requestData: { city },
       responseData: data,
-      httpStatus: 200,
+      httpStatus: HttpStatus.OK,
     };
 
-    await this.cityMembersService.sendLogRequest(logData);
-
-    res.status(200).json(data);
+    if (
+      (citiesPopulation && !cityMembers) ||
+      (cityMembers && !citiesPopulation)
+    ) {
+      logData.httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+      await this.cityMembersService.sendLogRequest(logData);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: 'Internal server error' });
+    } else {
+      await this.cityMembersService.sendLogRequest(logData);
+      res.status(HttpStatus.OK).json(data);
+    }
   }
 }
